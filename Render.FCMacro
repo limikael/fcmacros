@@ -1,0 +1,74 @@
+import sys, os, FreeCAD, RaytracingGui, shutil, os.path, ImageGui, subprocess
+
+if os.path.dirname(__file__) not in sys.path:
+	sys.path.append(os.path.dirname(__file__))
+
+import lib.DocumentDisentangler
+reload (lib.DocumentDisentangler)
+from lib.DocumentDisentangler import DocumentDisentangler
+
+import lib.DialogUtil
+reload(lib.DialogUtil)
+from lib.DialogUtil import DialogUtil
+
+def main():
+	doc=FreeCAD.ActiveDocument
+
+	if doc is None:
+		DialogUtil.errorMessage("No current document.")
+		return
+
+	if doc.FileName is None or doc.FileName=="":
+		DialogUtil.errorMessage("The document needs to have a file name, please save it first.")
+		return
+
+	if not os.path.isfile(doc.FileName.replace(".fcstd",".povtpl")):
+		shutil.copy(
+			FreeCAD.getResourceDir()+"Mod/Raytracing/Templates/RadiosityNormal.pov",
+			doc.FileName.replace(".fcstd",".povtpl")
+		)
+
+	disentangler=DocumentDisentangler()
+	povdoc=disentangler.disentangle(doc)
+	objs=povdoc.Objects
+	povdoc.addObject('Raytracing::RayProject','PovProject')
+	pov=povdoc.PovProject
+
+	for obj in objs:
+		o=povdoc.addObject('Raytracing::RayFeature',obj.Name+"Pov")
+		o.Source=obj
+		o.Color=obj.ViewObject.ShapeColor
+		pov.addObject(o)
+
+	pov.Template=doc.FileName.replace(".fcstd",".povtpl")
+	pov.Camera=RaytracingGui.povViewCamera()
+	povdoc.recompute()
+
+	if os.path.isfile(doc.FileName.replace(".fcstd",".pov")):
+		os.remove(doc.FileName.replace(".fcstd",".pov"))
+
+	if os.path.isfile(doc.FileName.replace(".fcstd",".png")):
+		os.remove(doc.FileName.replace(".fcstd",".png"))
+
+	shutil.copy(pov.PageResult,doc.FileName.replace(".fcstd",".pov"))
+
+	paramGroup=FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Raytracing")
+	params=[
+		paramGroup.GetString("PovrayExecutable"),
+		paramGroup.GetString("OutputParameters"),
+		"+W"+str(paramGroup.GetInt("OutputWidth")),
+		"+H"+str(paramGroup.GetInt("OutputHeight")),
+		"+O"+doc.FileName.replace(".fcstd",".png"),
+		doc.FileName.replace(".fcstd",".pov")
+	]
+
+	res=subprocess.call(params)
+	if res!=0:
+		DialogUtil.errorMessage("Povray failed, return code "+str(res))
+		return
+
+	ImageGui.open(doc.FileName.replace(".fcstd",".png"))
+	FreeCAD.closeDocument(povdoc.Name)
+	App.setActiveDocument(doc.Name)
+
+main()

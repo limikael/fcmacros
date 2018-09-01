@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import FreeCAD, Mesh, tempfile, subprocess
-from PySide import QtCore,QtGui
+from PySide import QtCore, QtGui
 
 import __options__ as options
 reload(options)
