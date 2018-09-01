@@ -26,4 +26,4 @@ else:
 	print "will export to "+fileName
 	Mesh.export(visibleObjs,fileName)
 
-	subprocess.Popen([SLICER,fileName])
+	subprocess.Popen([macrooptions.SLICER,fileName])
