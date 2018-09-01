@@ -2,17 +2,18 @@
 import FreeCAD, Mesh, tempfile, subprocess
 from PySide import QtCore,QtGui
 
-import macrooptions
-reload(macrooptions)
+import __options__ as options
+reload(options)
 
-doc=App.ActiveDocument
-if doc is None:
-	message="No document open"
-	dialog=QtGui.QMessageBox(QtGui.QMessageBox.Information,'Error',message)
-	dialog.setWindowModality(QtCore.Qt.ApplicationModal)
-	dialog.exec_()
+def main():
+	doc=App.ActiveDocument
+	if doc is None:
+		message="No document open"
+		dialog=QtGui.QMessageBox(QtGui.QMessageBox.Information,'Error',message)
+		dialog.setWindowModality(QtCore.Qt.ApplicationModal)
+		dialog.exec_()
+		return
 
-else:
 	visibleObjs=[]
 
 	for obj in doc.Objects:
@@ -23,7 +24,8 @@ else:
 	fileName=f.name
 	f.close()
 
-	print "will export to "+fileName
 	Mesh.export(visibleObjs,fileName)
 
-	subprocess.Popen([macrooptions.SLICER,fileName])
+	subprocess.Popen([options.SLICER,fileName])
+
+main()

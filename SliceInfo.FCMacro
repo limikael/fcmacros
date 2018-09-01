@@ -5,11 +5,11 @@ import tempfile
 import subprocess
 from PySide import QtCore,QtGui
 
-import macrooptions
-reload(macrooptions)
+import __options__ as options
+reload(options)
 
 slicerOptions=[]
-for iniFile in macrooptions.SLICER_INI_FILES:
+for iniFile in options.SLICER_INI_FILES:
 	slicerOptions.append("--load")
 	slicerOptions.append(iniFile)
 
@@ -23,7 +23,7 @@ stlFileName=tempfile.gettempdir()+"/temporary.stl"
 gcodeFileName=tempfile.gettempdir()+"/temporary.gcode"
 
 Mesh.export(visibleObjs,stlFileName)
-slicerOutput=subprocess.check_output([macrooptions.SLICER]+
+slicerOutput=subprocess.check_output([options.SLICER]+
 	slicerOptions+
 	["--no-gui",stlFileName,"--output",gcodeFileName])
 
