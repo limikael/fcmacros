@@ -1,0 +1,69 @@
+from pivy import coin
+
+class RayCamera:
+	def __init__(self, obj):
+		obj.Proxy=self
+
+	def execute(self, fp):
+		v1 = FreeCAD.Vector(0,0,0)
+		v2 = FreeCAD.Vector(0,0,.001)
+		v3 = FreeCAD.Vector(.001,0,-.001)
+		f1=self.make_face(v1,v2,v3)
+		shell=Part.makeShell([f1])
+		solid=Part.makeSolid(shell)
+		fp.Shape = solid
+
+	def make_face(self,v1,v2,v3):
+		wire = Part.makePolygon([v1,v2,v3,v1])
+		face = Part.Face(wire)
+		return face 
+
+class RayCameraViewProvider:
+	def __init__(self, obj):
+		obj.Proxy=self
+		obj.ShapeColor=(1.0,0.0,1.0)
+		obj.DisplayMode="Points"
+		obj.PointSize=10
+		obj.PointColor=(1.0,0.0,1.0)
+
+doc=FreeCAD.ActiveDocument
+guidoc=FreeCADGui.ActiveDocument
+guidoc.activeView().setCameraType("Perspective")
+cam=guidoc.ActiveView.getCameraNode()
+
+if hasattr(doc,"Raytracing"):
+	group=doc.getObject("Raytracing")
+
+else:
+	group=doc.addObject("App::DocumentObjectGroup","Raytracing")
+
+if hasattr(doc,"RaytracingCamera"):
+	cameraobj=doc.getObject("RaytracingCamera")
+
+else:
+	cameraobj=doc.addObject("Part::FeaturePython","RaytracingCamera")
+	group.addObject(cameraobj)
+	RayCamera(cameraobj)
+	RayCameraViewProvider(cameraobj.ViewObject)
+	cameraobj.Placement.Base=cam.position.getValue()
+
+if hasattr(doc,"RaytracingTarget"):
+	targetobj=doc.getObject("RaytracingTarget")
+
+else:
+	targetobj=doc.addObject("Part::FeaturePython","RaytracingTarget")
+	group.addObject(targetobj)
+	RayCamera(targetobj)
+	RayCameraViewProvider(targetobj.ViewObject)
+	orientation=cam.orientation.getValue()
+	pos=FreeCAD.Vector(orientation.multVec(coin.SbVec3f(0,0,-1)).getValue())
+	pos=pos.multiply(10).add(cameraobj.Placement.Base)
+	targetobj.Placement.Base=pos
+
+at=coin.SbVec3f(targetobj.Placement.Base)
+up=coin.SbVec3f(0,0,1)
+pos=coin.SbVec3f(cameraobj.Placement.Base)
+
+cam.position=pos
+cam.pointAt(at,up)
+doc.recompute()
