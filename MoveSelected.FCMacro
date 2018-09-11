@@ -1,0 +1,52 @@
+from PySide import QtCore, QtGui
+import os
+
+if os.path.dirname(__file__) not in sys.path:
+	sys.path.append(os.path.dirname(__file__))
+
+import lib.DialogUtil
+reload(lib.DialogUtil)
+from lib.DialogUtil import DialogUtil
+
+def main():
+	if FreeCAD.ActiveDocument is None \
+			or FreeCADGui.ActiveDocument is None:
+		DialogUtil.errorMessage("No document open")
+		return
+
+	selection=FreeCADGui.Selection.getSelection()
+	if len(selection)==0:
+		DialogUtil.errorMessage("No objects selected")
+		return
+
+	dialog=QtGui.QInputDialog()
+	dialog.setWindowTitle("Move Selected")
+	dialog.setLabelText("%d Object(s) Selected.\n\nMove X,Y,Z:"%len(selection))
+	dialog.setTextValue("0,0,0")
+	dialog.exec_()
+	input=dialog.textValue().split(",")
+	if len(input)!=3:
+		DialogUtil.errorMessage("Not on the form X,Y,Z")
+		return
+
+	for i in range(0,3):
+		if input[i].strip()=="":
+			input[i]="0"
+
+		try:
+			float(input[i])
+
+		except ValueError:
+			DialogUtil.errorMessage("Not a number")
+			return
+
+	FreeCAD.ActiveDocument.openTransaction()
+
+	for obj in selection:
+		obj.Placement.Base.x+=float(input[0])
+		obj.Placement.Base.y+=float(input[1])
+		obj.Placement.Base.z+=float(input[2])
+
+	FreeCAD.ActiveDocument.commitTransaction()
+
+main()
