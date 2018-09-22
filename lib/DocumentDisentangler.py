@@ -30,12 +30,24 @@ class DocumentDisentangler:
 		self.__tmpDocs.append(doc.Name)
 		return doc
 
-	def __processObjects(self, objs, matrix=None, processInvisible=False):
+	def __processObjects(self, objs, matrix=None, processInvisible=False, processPartChildren=False):
 		if matrix is None:
 			matrix=FreeCAD.Matrix()
 
 		for obj in objs:
-			if processInvisible or obj.ViewObject.isVisible():
+			process=True
+
+			if not processPartChildren:
+				for parent in obj.InList:
+					if parent.TypeId=="App::Part":
+						process=False
+
+			if not processInvisible:
+				if not obj.ViewObject.isVisible():
+					process=False
+
+#			if processInvisible or obj.ViewObject.isVisible():
+			if process:
 				if obj.TypeId=="Part::Compound":
 					m=matrix.multiply(obj.Placement.toMatrix())
 					self.__processObjects(obj.OutList,m,True)
@@ -52,7 +64,15 @@ class DocumentDisentangler:
 					ViewProviderDupShape(o.ViewObject)
 					o.ViewObject.ShapeColor=obj.ViewObject.ShapeColor
 					o.Placement=FreeCAD.Placement(matrix.multiply(obj.Placement.toMatrix()))
-					pass
+
+				elif obj.TypeId.split("::")[0]=="Mesh":
+					o=self.__target.addObject("Mesh::Feature")
+					o.Mesh=obj.Mesh
+					o.ViewObject.ShapeColor=obj.ViewObject.ShapeColor
+
+				elif obj.TypeId=="App::Part":
+					m=matrix.multiply(obj.Placement.toMatrix())
+					self.__processObjects(obj.Group,m,processPartChildren=True)
 
 	def disentangle(self, doc=None):
 		start=time.time()

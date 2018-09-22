@@ -1,0 +1,39 @@
+from PySide import QtCore, QtGui
+import os, sys
+
+if os.path.dirname(__file__) not in sys.path:
+	sys.path.append(os.path.dirname(__file__))
+
+import lib.DialogUtil
+reload(lib.DialogUtil)
+from lib.DialogUtil import DialogUtil
+
+def main():
+	if FreeCAD.ActiveDocument is None \
+			or FreeCADGui.ActiveDocument is None:
+		DialogUtil.errorMessage("No document open")
+		return
+
+	dialog=QtGui.QInputDialog()
+	dialog.setWindowTitle("Create Pivot Compound")
+	dialog.setLabelText("Name:")
+	dialog.setTextValue("PivotCompound")
+	dialog.exec_()
+	name=dialog.textValue()
+
+	doc=FreeCAD.ActiveDocument
+	inner=doc.addObject("Part::Compound",name+"Inner")
+	outer=doc.addObject("Part::Compound",name)
+	outer.Links=[inner]
+
+	pivot=doc.addObject("App::Part",name+"Pivot")
+	pivotName=pivot.Name
+
+	outer.setExpression("Placement.Base.x",pivotName+".Placement.Base.x")
+	outer.setExpression("Placement.Base.y",pivotName+".Placement.Base.y")
+	outer.setExpression("Placement.Base.z",pivotName+".Placement.Base.z")
+	inner.setExpression("Placement.Base.x","-"+pivotName+".Placement.Base.x")
+	inner.setExpression("Placement.Base.y","-"+pivotName+".Placement.Base.y")
+	inner.setExpression("Placement.Base.z","-"+pivotName+".Placement.Base.z")
+
+main()
